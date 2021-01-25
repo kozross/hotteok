@@ -1,0 +1,31 @@
+cabal-version:      3.0
+name:               hotteok
+version:            1.0.0.0
+synopsis:           The next generation of Haskell documentation.
+description:
+  A tool to completely replace Haddock for generating Haskell
+  documentation. 
+
+homepage:           https://github.org/kozross/hotteok
+license:            Apache-2.0
+license-file:       LICENSE.md
+author:             Koz Ross
+maintainer:         koz.ross@retro-freedom.nz
+copyright:          (C) Koz Ross 2021
+category:           Hotteok
+tested-with:        GHC ==9.0.0
+build-type:         Simple
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+executable hotteok
+  main-is:          Main.hs
+  build-depends:    base ^>=4.15
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wredundant-constraints -Werror -threaded
+    -with-rtsopts=-N
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
