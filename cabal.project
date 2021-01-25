@@ -1,1 +1,1 @@
-packages: hotteok/hotteok.cabal
+packages: hotteok/hotteok.cabal asciimath/asciimath.cabal
