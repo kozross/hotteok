@@ -3,6 +3,7 @@
 ## What is this thing?
 
 > "Haddock is creaking at the seams." 
+>
 > Stephen Diehl, [Reflecting on Haskell in
 > 2017](https://www.stephendiehl.com/posts/haskell_2018.html)
 
