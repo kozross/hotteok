@@ -176,6 +176,7 @@ pattern Symbol <-
 categorize :: AsciiChar -> AsciiCategory
 categorize c@(AsciiChar w8)
   | charType c == Control = Other
+  | w8 == 0x20 = Punctuation
   | w8 >= 0x21 && w8 <= 0x23 = Punctuation
   | w8 == 0x24 = Symbol
   | w8 >= 0x25 && w8 <= 0x2a = Punctuation

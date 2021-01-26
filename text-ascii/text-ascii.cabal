@@ -18,7 +18,10 @@ extra-source-files:
   README.md
 
 library
-  exposed-modules:  Text.Ascii.Char
+  exposed-modules:
+    Text.Ascii
+    Text.Ascii.Char
+
   build-depends:
     , base         >=4.12     && <5
     , bytestring   ^>=0.10.0.0 || ^>=0.11.0.0
