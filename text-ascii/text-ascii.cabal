@@ -22,6 +22,7 @@ library
     Text.Ascii
     Text.Ascii.Char
 
+  other-modules:    Text.Ascii.Char.Internal
   build-depends:
     , base         >=4.12     && <5
     , bytestring   ^>=0.10.0.0 || ^>=0.11.0.0
