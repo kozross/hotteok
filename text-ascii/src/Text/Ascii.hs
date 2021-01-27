@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -158,29 +159,26 @@ newtype AsciiText = AsciiText ByteString
 
 -- | @since 1.0.0
 instance IsList AsciiText where
-  type Item AsciiText = AsciiChar -- ^ @since 1.0.0
+  type Item AsciiText = AsciiChar
   {-# INLINEABLE fromList #-}
-  fromList = fromJust . fromByteString . fromList . coerce -- ^ @since 1.0.0
+  fromList = fromJust . fromByteString . fromList . coerce
   {-# INLINEABLE fromListN #-}
-  fromListN n = fromJust . fromByteString . fromListN n . coerce -- ^ @since 1.0.0
+  fromListN n = fromJust . fromByteString . fromListN n . coerce
   {-# INLINEABLE toList #-}
-  toList = coerce . toList . toByteString -- ^ @since 1.0.0
+  toList = coerce . toList . toByteString
 
 -- | @since 1.0.0
 instance Binary AsciiText where
   {-# INLINEABLE put #-}
-  -- | @since 1.0.0
   put (AsciiText bs) = do
     let len :: Int = BS.length bs
     put len
     traverse_ (put . BS.index bs) [0 .. len - 1]
   {-# INLINEABLE get #-}
-  -- | @since 1.0.0
   get = do
     len :: Int <- get
     fromListN len <$> replicateM len get
   {-# INLINEABLE putList #-}
-  -- | @since 1.0.0
   putList ats = putList (coerce @_ @[ByteString] ats)
 
 -- Creation
