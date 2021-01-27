@@ -2,13 +2,16 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Text.Ascii.Char.Internal where
 
 import Control.DeepSeq (NFData)
 import Control.Monad (guard)
+import Data.Binary (Binary (get, put, putList))
 import Data.Char (GeneralCategory, chr, generalCategory, isAscii, ord)
+import Data.Coerce (coerce)
 import Data.Functor (($>))
 import Data.Hashable (Hashable)
 import Data.Word (Word8)
@@ -29,6 +32,18 @@ instance Enum AsciiChar where
       then AsciiChar . fromIntegral $ i
       else error ("Out of range for ASCII: " <> show i)
   fromEnum (AsByte w8) = fromIntegral w8
+
+instance Binary AsciiChar where
+  {-# INLINEABLE put #-}
+  put = put . toByte
+  {-# INLINEABLE get #-}
+  get = do
+    w8 :: Word8 <- get
+    if w8 <= 127
+      then pure . AsciiChar $ w8
+      else fail ("Out of range for ASCII: " <> show w8)
+  {-# INLINEABLE putList #-}
+  putList acs = putList (coerce @_ @[Word8] acs)
 
 pattern AsByte :: Word8 -> AsciiChar
 pattern AsByte w8 <- AsciiChar w8
