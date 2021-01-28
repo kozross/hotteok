@@ -1,7 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -99,14 +98,10 @@ where
 
 import Control.Category ((.))
 import Control.DeepSeq (NFData)
-import Control.Monad (replicateM)
-import Data.Bifunctor (bimap)
-import Data.Binary (Binary (get, put, putList))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Char (isAscii)
 import Data.Coerce (coerce)
-import Data.Foldable (traverse_)
 import Data.Maybe (Maybe (Just, Nothing), fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -126,10 +121,15 @@ import Prelude
     not,
     pure,
     ($),
-    (-),
     (<$>),
     (>),
   )
+
+-- Note on pragmata
+--
+-- This is cribbed directly from bytestring, as I figure they know what they're
+-- doing way better than we do. When we add our own functionality, this probably
+-- needs to be considered more carefully. - Koz
 
 -- Type
 
@@ -167,20 +167,6 @@ instance IsList AsciiText where
   {-# INLINEABLE toList #-}
   toList = coerce . toList . toByteString
 
--- | @since 1.0.0
-instance Binary AsciiText where
-  {-# INLINEABLE put #-}
-  put (AsciiText bs) = do
-    let len :: Int = BS.length bs
-    put len
-    traverse_ (put . BS.index bs) [0 .. len - 1]
-  {-# INLINEABLE get #-}
-  get = do
-    len :: Int <- get
-    fromListN len <$> replicateM len get
-  {-# INLINEABLE putList #-}
-  putList ats = putList (coerce @_ @[ByteString] ats)
-
 -- Creation
 
 -- | The empty text.
@@ -189,65 +175,159 @@ instance Binary AsciiText where
 --
 -- @since 1.0.0
 empty :: AsciiText
-empty = AsciiText BS.empty
+empty = coerce BS.empty
 
 -- | A text consisting of a single ASCII character.
 --
 -- /Complexity:/ \(\Theta(1)\)
 --
 -- @since 1.0.0
+{-# INLINE [1] singleton #-}
 singleton :: AsciiChar -> AsciiText
-singleton (AsciiChar w8) = AsciiText . BS.singleton $ w8
+singleton = coerce BS.singleton
 
 -- TODO: Quasiquoter
 
 -- Basic interface
 
+-- | Adds a character to the front of a text. This requires copying, which gives
+-- its complexity.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE cons #-}
 cons :: AsciiChar -> AsciiText -> AsciiText
-cons (AsciiChar w8) (AsciiText bs) = AsciiText . BS.cons w8 $ bs
+cons = coerce BS.cons
 
+-- | Adds a character to the back of a text. This requires copying, which gives
+-- its complexity.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE snoc #-}
 snoc :: AsciiText -> AsciiChar -> AsciiText
-snoc (AsciiText bs) (AsciiChar w8) = AsciiText . BS.snoc bs $ w8
+snoc = coerce BS.snoc
 
+-- | If the argument is non-empty, gives 'Just' the first character and the
+-- rest, and 'Nothing' otherwise.
+--
+-- /Complexity:/ \(\Theta(1)\)
+--
+-- @since 1.0.0
+{-# INLINE uncons #-}
 uncons :: AsciiText -> Maybe (AsciiChar, AsciiText)
-uncons (AsciiText bs) = bimap AsciiChar AsciiText <$> BS.uncons bs
+uncons = coerce BS.uncons
 
+-- | If the argument is non-empty, gives 'Just' the initial segment and the last
+-- character, and 'Nothing' otherwise.
+--
+-- /Complexity:/ \(\Theta(1)\)
+--
+-- @since 1.0.0
+{-# INLINE unsnoc #-}
 unsnoc :: AsciiText -> Maybe (AsciiText, AsciiChar)
-unsnoc (AsciiText bs) = bimap AsciiText AsciiChar <$> BS.unsnoc bs
+unsnoc = coerce BS.unsnoc
 
+-- unsnoc (AsciiText bs) = bimap AsciiText AsciiChar <$> BS.unsnoc bs
+
+-- | The number of characters (and, since this is ASCII, bytes) in the text.
+--
+-- /Complexity:/ \(\Theta(1)\)
+--
+-- @since 1.0.0
+{-# INLINE length #-}
 length :: AsciiText -> Int
-length (AsciiText bs) = BS.length bs
+length = coerce BS.length
 
 -- Transformations
 
+-- | Copy, and apply the function to each element of, the text.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE map #-}
 map :: (AsciiChar -> AsciiChar) -> AsciiText -> AsciiText
-map f (AsciiText bs) = AsciiText . BS.map (coerce f) $ bs
+map = coerce BS.map
 
+-- | Takes a text and a list of texts, and concatenates the list after
+-- interspersing the first argument between each element of the list.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE [1] intercalate #-}
 intercalate :: AsciiText -> [AsciiText] -> AsciiText
-intercalate (AsciiText bs) = AsciiText . BS.intercalate bs . coerce
+intercalate = coerce BS.intercalate
 
+-- | Takes a character, and places it between the characters of a text.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
 intersperse :: AsciiChar -> AsciiText -> AsciiText
-intersperse (AsciiChar w8) = AsciiText . BS.intersperse w8 . coerce
+intersperse = coerce BS.intersperse
 
+-- | Transpose the rows and columns of the argument. This uses
+-- 'Data.List.transpose' internally, and thus, isn't very efficient.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
 transpose :: [AsciiText] -> [AsciiText]
 transpose = coerce BS.transpose
 
+-- | Reverse the text.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
 reverse :: AsciiText -> AsciiText
 reverse = coerce BS.reverse
 
 -- TODO: Replace, justifyLeft, justifyRight, center
 
+-- Folds
+
+-- | Left-associative fold of a text.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE foldl #-}
 foldl :: (a -> AsciiChar -> a) -> a -> AsciiText -> a
 foldl f x (AsciiText bs) = BS.foldl (coerce f) x bs
 
+-- | Left-associative fold of a text, strict in the accumulator.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE foldl' #-}
 foldl' :: (a -> AsciiChar -> a) -> a -> AsciiText -> a
 foldl' f x (AsciiText bs) = BS.foldl' (coerce f) x bs
 
+-- | Right-associative fold of a text.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE foldr #-}
 foldr :: (AsciiChar -> a -> a) -> a -> AsciiText -> a
 foldr f x (AsciiText bs) = BS.foldr (coerce f) x bs
 
+-- | Right-associative fold of a text, strict in the accumulator.
+--
+-- /Complexity:/ \(\Theta(n)\)
+--
+-- @since 1.0.0
+{-# INLINE foldr' #-}
 foldr' :: (AsciiChar -> a -> a) -> a -> AsciiText -> a
 foldr' f x (AsciiText bs) = BS.foldr' (coerce f) x bs
+
+-- Special folds
 
 concat :: [AsciiText] -> AsciiText
 concat = coerce BS.concat

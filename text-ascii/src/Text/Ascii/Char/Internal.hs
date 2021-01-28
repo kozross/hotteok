@@ -9,9 +9,7 @@ module Text.Ascii.Char.Internal where
 
 import Control.DeepSeq (NFData)
 import Control.Monad (guard)
-import Data.Binary (Binary (get, put, putList))
 import Data.Char (GeneralCategory, chr, generalCategory, isAscii, ord)
-import Data.Coerce (coerce)
 import Data.Functor (($>))
 import Data.Hashable (Hashable)
 import Data.Word (Word8)
@@ -25,25 +23,6 @@ newtype AsciiChar = AsciiChar {toByte :: Word8}
 instance Bounded AsciiChar where
   minBound = AsciiChar 0
   maxBound = AsciiChar 127
-
-instance Enum AsciiChar where
-  toEnum i =
-    if isAscii . chr $ i
-      then AsciiChar . fromIntegral $ i
-      else error ("Out of range for ASCII: " <> show i)
-  fromEnum (AsByte w8) = fromIntegral w8
-
-instance Binary AsciiChar where
-  {-# INLINEABLE put #-}
-  put = put . toByte
-  {-# INLINEABLE get #-}
-  get = do
-    w8 :: Word8 <- get
-    if w8 <= 127
-      then pure . AsciiChar $ w8
-      else fail ("Out of range for ASCII: " <> show w8)
-  {-# INLINEABLE putList #-}
-  putList acs = putList (coerce @_ @[Word8] acs)
 
 pattern AsByte :: Word8 -> AsciiChar
 pattern AsByte w8 <- AsciiChar w8
@@ -83,15 +62,6 @@ instance Bounded AsciiType where
   minBound = Control
   maxBound = Printable
 
-instance Enum AsciiType where
-  toEnum = \case
-    0 -> Control
-    1 -> Printable
-    n -> error ("Out of range for AsciiType: " <> show n)
-  fromEnum = \case
-    Control -> 0
-    Printable -> 1
-
 pattern Control :: AsciiType
 pattern Control <-
   AsciiType 0
@@ -119,21 +89,6 @@ newtype AsciiCategory = AsciiCategory Word8
 instance Bounded AsciiCategory where
   minBound = Other
   maxBound = Symbol
-
-instance Enum AsciiCategory where
-  toEnum = \case
-    0 -> Other
-    1 -> Punctuation
-    2 -> Letter
-    3 -> Number
-    4 -> Symbol
-    n -> error ("Out of range for AsciiCategory: " <> show n)
-  fromEnum = \case
-    Other -> 0
-    Punctuation -> 1
-    Letter -> 2
-    Number -> 3
-    Symbol -> 4
 
 pattern Other :: AsciiCategory
 pattern Other <-
@@ -201,15 +156,6 @@ newtype AsciiCase = AsciiCase Word8
 instance Bounded AsciiCase where
   minBound = Upper
   maxBound = Lower
-
-instance Enum AsciiCase where
-  toEnum = \case
-    0 -> Upper
-    1 -> Lower
-    n -> error ("Out of range for AsciiCase: " <> show n)
-  fromEnum = \case
-    Upper -> 0
-    Lower -> 1
 
 pattern Upper :: AsciiCase
 pattern Upper <-
